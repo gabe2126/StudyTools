@@ -1,0 +1,3330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gabe's Game Site - Full Arcade</title>
+
+    <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100%;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #1e1e1e;
+            color: white;
+            text-align: center;
+            padding-bottom: 20px;
+            overflow-x: hidden;
+        }
+
+        .secret-admin-btn {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 40px;
+            height: 40px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            z-index: 9999;
+            opacity: 0;
+        }
+
+        .secret-admin-btn:hover {
+            opacity: 0.1;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+        }
+
+        h1 {
+            margin: 20px 0 10px;
+            font-size: 2.2rem;
+            background: linear-gradient(135deg, #f5af19, #f12711);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        #search input {
+            padding: 12px 18px;
+            width: 360px;
+            max-width: 90%;
+            font-size: 16px;
+            border-radius: 50px;
+            border: none;
+            background: #2c2c2c;
+            color: white;
+            outline: none;
+        }
+
+        #menu {
+            max-width: 1300px;
+            margin: 30px auto 60px;
+            padding: 0 20px;
+            text-align: left;
+        }
+
+        .letter-row {
+            margin-bottom: 32px;
+        }
+
+        .letter-title {
+            font-size: 28px;
+            font-weight: bold;
+            border-bottom: 3px solid #f39c12;
+            display: inline-block;
+            margin: 10px 0 15px 0;
+        }
+
+        .games {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .game-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 130px;
+            min-height: 115px;
+            background: #2d2d2d;
+            border: none;
+            border-radius: 14px;
+            padding: 10px 6px;
+            cursor: pointer;
+            color: white;
+            transition: 0.2s;
+        }
+
+        .game-btn:hover {
+            background: #00bfff;
+            transform: translateY(-4px);
+        }
+
+        .game-btn img {
+            width: 110px;
+            height: 75px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            background: #222;
+        }
+
+        .game-name {
+            font-size: 13px;
+            line-height: 1.2;
+            word-break: break-word;
+        }
+
+        /* ========================================================
+           GAME PLAYER AREA
+           ======================================================== */
+
+        #player-area {
+            margin: 20px auto 50px;
+            width: 100%;
+            max-width: 100%;
+            text-align: center;
+        }
+
+        #game-title {
+            font-size: 28px;
+            font-weight: bold;
+            background: #2c3e50;
+            display: inline-block;
+            padding: 5px 20px;
+            border-radius: 40px;
+            margin-bottom: 10px;
+        }
+
+        #fullscreenBtn {
+            display: block;
+            margin: 0 auto 12px;
+            padding: 8px 22px;
+            background: #3a3f44;
+            border: none;
+            border-radius: 40px;
+            color: white;
+            cursor: pointer;
+        }
+
+        #fullscreenBtn:hover {
+            background: #00bfff;
+        }
+
+        /* ========================================================
+           RESIZABLE GAME PLAYER
+           ======================================================== */
+
+        #game {
+            position: relative;
+
+            width: 860px;
+            height: 560px;
+
+            min-width: 300px;
+            min-height: 200px;
+
+            max-width: 96vw;
+            max-height: none;
+
+            margin-left: auto;
+            margin-right: auto;
+
+            border-radius: 20px;
+            border: 3px solid #2c3e50;
+            background: #000;
+
+            overflow: hidden;
+
+            flex-shrink: 0;
+        }
+
+        #game iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+
+            width: 100%;
+            height: 100%;
+
+            border: 0;
+            display: block;
+        }
+
+        #game ruffle-player {
+            position: absolute !important;
+
+            top: 0 !important;
+            left: 0 !important;
+
+            width: 100% !important;
+            height: 100% !important;
+
+            display: block !important;
+        }
+
+        /* ========================================================
+           BOTTOM-RIGHT RESIZE HANDLE
+           ======================================================== */
+
+        #game-resize-handle {
+            position: absolute;
+
+            right: 0;
+            bottom: 0;
+
+            width: 32px;
+            height: 32px;
+
+            cursor: nwse-resize;
+
+            z-index: 99999;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    transparent 0%,
+                    transparent 38%,
+                    #888 39%,
+                    #888 45%,
+                    transparent 46%,
+                    transparent 58%,
+                    #888 59%,
+                    #888 65%,
+                    transparent 66%,
+                    transparent 78%,
+                    #888 79%,
+                    #888 85%,
+                    transparent 86%
+                );
+
+            border-bottom-right-radius: 15px;
+
+            touch-action: none;
+
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #game-resize-handle:hover {
+            background:
+                linear-gradient(
+                    135deg,
+                    transparent 0%,
+                    transparent 38%,
+                    #00bfff 39%,
+                    #00bfff 45%,
+                    transparent 46%,
+                    transparent 58%,
+                    #00bfff 59%,
+                    #00bfff 65%,
+                    transparent 66%,
+                    transparent 78%,
+                    #00bfff 79%,
+                    #00bfff 85%,
+                    transparent 86%
+                );
+        }
+
+        #game-resize-handle:active {
+            background:
+                linear-gradient(
+                    135deg,
+                    transparent 0%,
+                    transparent 38%,
+                    #f39c12 39%,
+                    #f39c12 45%,
+                    transparent 46%,
+                    transparent 58%,
+                    #f39c12 59%,
+                    #f39c12 65%,
+                    transparent 66%,
+                    transparent 78%,
+                    #f39c12 79%,
+                    #f39c12 85%,
+                    transparent 86%
+                );
+        }
+
+        /* ========================================================
+           CUSTOM CONTROLS
+           ======================================================== */
+
+        .control-panel {
+            width: min(860px, 96vw);
+            margin: 28px auto 0;
+            background: #252525e6;
+            border-radius: 28px;
+            padding: 18px 16px;
+            border: 1px solid #3e3e3e;
+        }
+
+        .custom-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        #addCustomBtn,
+        #toggleDeleteModeBtn {
+            background: #2c5f8a;
+            border: none;
+            border-radius: 40px;
+            color: white;
+            padding: 6px 18px;
+            cursor: pointer;
+        }
+
+        #toggleDeleteModeBtn.delete-active {
+            background: #c0392b;
+        }
+
+        .custom-buttons-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            min-height: 70px;
+            padding: 12px;
+            background: #222;
+            border-radius: 28px;
+        }
+
+        .custom-btn-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #353535;
+            border-radius: 60px;
+            padding: 4px 8px 4px 12px;
+            cursor: grab;
+        }
+
+        .drag-handle {
+            cursor: grab;
+            font-size: 20px;
+            color: #bbb;
+        }
+
+        .delete-btn-icon {
+            background: #8b3a3a;
+            border: none;
+            border-radius: 40px;
+            color: white;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+        }
+
+        .custom-game-btn {
+            background: #2c6e2c;
+            border: none;
+            border-radius: 50px;
+            color: white;
+            padding: 8px 18px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .custom-game-btn:active {
+            transform: scale(0.95);
+            background: #3eb53e;
+        }
+
+        /* ========================================================
+           SUGGESTIONS
+           ======================================================== */
+
+        .suggestions-section {
+            width: min(860px, 96vw);
+            margin: 40px auto 20px;
+            background: #1a2a2a;
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid #f39c12;
+        }
+
+        .suggestions-header {
+            background: #f39c12;
+            color: #1e1e1e;
+            padding: 12px 20px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 18px;
+        }
+
+        .suggestions-header button {
+            background: none;
+            border: none;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #1e1e1e;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+        }
+
+        .suggestions-header button:hover {
+            background: rgba(0,0,0,0.1);
+        }
+
+        .suggestions-body {
+            display: none;
+            background: #1a2a2a;
+        }
+
+        .suggestions-body.expanded {
+            display: block;
+        }
+
+        .messages-area {
+            height: 260px;
+            overflow-y: auto;
+            padding: 12px;
+            background: #1e1e1e;
+        }
+
+        .message-bubble {
+            background: #2d2d2d;
+            border-radius: 12px;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            text-align: left;
+            border-left: 3px solid #f39c12;
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .message-content {
+            flex: 1;
+        }
+
+        .message-name {
+            font-weight: bold;
+            color: #f39c12;
+            font-size: 13px;
+        }
+
+        .message-text {
+            color: #eee;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .message-time {
+            font-size: 10px;
+            color: #888;
+            text-align: right;
+            margin-top: 5px;
+        }
+
+        .message-delete-btn {
+            background: #c0392b;
+            border: none;
+            color: white;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-left: 12px;
+            white-space: nowrap;
+        }
+
+        .message-delete-btn:hover {
+            background: #e74c3c;
+            transform: scale(1.02);
+        }
+
+        .input-area {
+            padding: 15px;
+            background: #1a2a2a;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border-top: 1px solid #3a5a5a;
+        }
+
+        .name-input,
+        .msg-input {
+            padding: 10px 15px;
+            border-radius: 40px;
+            border: none;
+            background: #2d3a3a;
+            color: white;
+            outline: none;
+        }
+
+        .name-input:focus,
+        .msg-input:focus {
+            background: #3a4a4a;
+        }
+
+        .send-btn {
+            background: #f39c12;
+            border: none;
+            padding: 10px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .send-btn:hover {
+            background: #e67e22;
+        }
+
+        .stats-bar {
+            background: #0f1a1a;
+            padding: 10px 15px;
+            text-align: center;
+            font-size: 13px;
+            color: #f39c12;
+            border-top: 1px solid #2a4a4a;
+            display: none;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .stats-bar.visible {
+            display: flex;
+        }
+
+        .admin-badge {
+            background: #c0392b;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-left: 15px;
+        }
+
+        .logout-header-btn {
+            background: #c0392b;
+            border: none;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .logout-header-btn:hover {
+            background: #e74c3c;
+        }
+
+        /* ========================================================
+           ADMIN
+           ======================================================== */
+
+        .admin-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20000;
+        }
+
+        .admin-card {
+            background: #2c2c2c;
+            padding: 30px;
+            border-radius: 24px;
+            width: 400px;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .admin-card input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 30px;
+            border: none;
+        }
+
+        .admin-card button {
+            margin: 10px 5px;
+            padding: 8px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+        }
+
+        .clear-all-btn {
+            background: #c0392b;
+            border: none;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+        }
+
+        .clear-all-btn:hover {
+            background: #e74c3c;
+        }
+
+        /* ========================================================
+           MOBILE
+           ======================================================== */
+
+        @media (max-width: 600px) {
+
+            h1 {
+                font-size: 1.7rem;
+            }
+
+            #search input {
+                width: 90%;
+            }
+
+            .games {
+                justify-content: center;
+            }
+
+            #game {
+                width: 96vw;
+                height: 400px;
+                min-width: 280px;
+                max-width: 96vw;
+            }
+
+            .custom-header {
+                justify-content: center;
+            }
+
+            .control-panel {
+                width: 96vw;
+            }
+
+            .suggestions-section {
+                width: 96vw;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<button
+    class="secret-admin-btn"
+    id="secretAdminBtn"
+    title="Admin">
+</button>
+
+<h1>🎮 GABE'S GAME SITE 🕹️</h1>
+
+<div id="search">
+    <input
+        id="searchBox"
+        type="text"
+        placeholder="🔍 Search for games">
+</div>
+
+<div id="menu"></div>
+
+<div id="player-area">
+
+    <div id="game-title">
+        Select a game
+    </div>
+
+    <button id="fullscreenBtn">
+        ⛶ Fullscreen
+    </button>
+
+    <div id="game">
+
+        <div id="game-resize-handle"></div>
+
+    </div>
+
+    <div class="control-panel">
+
+        <h3>
+            🎛️ CUSTOM CONTROLS
+            (drag to reorder · click to send input to game)
+        </h3>
+
+        <div class="custom-header">
+
+            <h4>
+                ✨ Add arrow keys, clicks, letters
+            </h4>
+
+            <div>
+
+                <button id="addCustomBtn">
+                    + Add Button
+                </button>
+
+                <button id="toggleDeleteModeBtn">
+                    🗑️ Delete Mode
+                </button>
+
+            </div>
+
+        </div>
+
+        <div
+            id="customButtonsContainer"
+            class="custom-buttons-list">
+        </div>
+
+        <p style="font-size:12px; color:#aaa;">
+            💡 Click ANY button above - it sends REAL
+            keyboard/mouse input to the game!
+        </p>
+
+    </div>
+
+</div>
+
+<div
+    class="suggestions-section"
+    id="suggestionsSection">
+
+    <div
+        class="suggestions-header"
+        id="suggestionsHeader">
+
+        💬 Suggestions & Feedback
+
+        <div>
+
+            <span
+                id="adminIndicator"
+                style="display:none;">
+            </span>
+
+            <button id="toggleSuggestionsBtn">
+                +
+            </button>
+
+        </div>
+
+    </div>
+
+    <div
+        class="suggestions-body"
+        id="suggestionsBody">
+
+        <div
+            class="messages-area"
+            id="messagesArea">
+        </div>
+
+        <div class="input-area">
+
+            <input
+                type="text"
+                id="suggestionName"
+                placeholder="Your name"
+                class="name-input">
+
+            <input
+                type="text"
+                id="suggestionMsg"
+                placeholder="Game suggestion or website feedback..."
+                class="msg-input">
+
+            <button
+                id="sendSuggestionBtn"
+                class="send-btn">
+                Send Suggestion
+            </button>
+
+        </div>
+
+    </div>
+
+    <div
+        class="stats-bar"
+        id="statsBar">
+
+        <span>
+            💾 Storage:
+            <span id="storageSize">---</span>
+        </span>
+
+        <span>
+            💬 Messages:
+            <span id="msgCount">---</span>
+        </span>
+
+        <button
+            id="clearAllBtn"
+            class="clear-all-btn">
+            🗑️ Clear All Messages
+        </button>
+
+    </div>
+
+</div>
+
+<script>
+
+    // ============================================================
+    // FIREBASE CONFIG
+    // ============================================================
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBaRZutX8I31x2i-nNl2zUqxbzwDr45bXk",
+        authDomain: "gabesdabest-games.firebaseapp.com",
+        databaseURL: "https://gabesdabest-games-default-rtdb.firebaseio.com",
+        projectId: "gabesdabest-games",
+        storageBucket: "gabesdabest-games.firebasestorage.app",
+        messagingSenderId: "112260370686",
+        appId: "1:112260370686:web:b0888d4a799424223895af",
+        measurementId: "G-90T8HELSRD"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+
+    const db = firebase.firestore();
+
+    let isAdminLoggedIn =
+        localStorage.getItem("gabes_admin_logged_in") === "true";
+
+
+    // ============================================================
+    // COMPLETE GAME LIST
+    // ============================================================
+
+    let gamesList = [
+
+        "blackjack.swf",
+
+        "bloons super monkey.swf",
+        "bloons tower defence 2.swf",
+        "bloons tower defence 3.swf",
+        "bloons tower defence 4.swf",
+        "bloons tower defence.swf",
+
+        "bloxorz 2.swf",
+        "bloxorz.swf",
+
+        "bob the robber 1.swf",
+        "breaking the bank.swf",
+
+        "cactus mccoy 2.swf",
+        "cactus mccoy.swf",
+
+        "classic-roulette.swf",
+
+        "diggy.swf",
+        "dino run.swf",
+
+        "Doom Triple Pack.swf",
+        "doom.swf",
+
+        "duck life 2 world champion.swf",
+        "Duck Life 3 Evolution.swf",
+        "duck life 4.swf",
+        "duck life treasure hunt.swf",
+        "duck life.swf",
+
+        "earn to die 2012 part2.swf",
+        "earn to die 2012.swf",
+        "earn to die exodus hacked.swf",
+        "earn to die exodus.swf",
+        "earn to die.swf",
+
+        "escaping the prison.swf",
+
+        "factory balls 2.swf",
+        "factory balls 3.swf",
+        "factory balls 4.swf",
+        "factory balls xmas.swf",
+        "factory balls.swf",
+
+        "fancy pants adventure World 2.swf",
+        "fancy pants adventures World 1.swf",
+        "Fancy Pants Adventures World 2 (Christmas).swf",
+        "Fancy Pants Adventures World 3.swf",
+
+        "farafalla.swf",
+
+        "Fireboy & Watergirl The Forest Temple.swf",
+
+        "fleeing the complex.swf",
+
+        "haunt the house.swf",
+
+        "infiltrating the airship.swf",
+
+        "Into Space 2 Xmas Story.swf",
+        "into space 2.swf",
+        "into space 3 xmas story v2.swf",
+        "into space 3 xmas story.swf",
+        "into space.swf",
+
+        "jacksmith.swf",
+
+        "learn to fly 2.swf",
+        "Learn To Fly 3.swf",
+        "learn to fly.swf",
+
+        "me and the key 2.swf",
+        "me and the key 3.swf",
+        "me and the key.swf",
+
+        "Minicraft.swf",
+
+        "Papa Louie 2.swf",
+        "Papa Louie 3.swf",
+        "papa louie.swf",
+
+        "papas bakeria.swf",
+        "papas burgeria.swf",
+        "papas cheeseria.swf",
+        "papas cupcakeria.swf",
+        "papas donuteria.swf",
+        "papas freezeria.swf",
+        "papas hotdoggeria.swf",
+        "papas pancakeria.swf",
+        "papas pastaria.swf",
+        "papas pizzeria v2.swf",
+        "papas scooperia v102.swf",
+        "papas sushiria.swf",
+        "papas taco mia.swf",
+        "papas wingeria.swf",
+
+        "Poker.swf",
+
+        "raft wars 2.swf",
+        "raft wars.swf",
+
+        "Ricks Slots.swf",
+
+        "riddle school 2.swf",
+        "riddle school 3.swf",
+        "riddle school 4.swf",
+        "riddle school 5.swf",
+        "riddle school.swf",
+
+        "riddle transfer 2.swf",
+        "riddle transfer.swf",
+
+        "rock garden v2.swf",
+
+        "Run 2.swf",
+        "Run 3.swf",
+        "Run.swf",
+
+        "Skull Slots.swf",
+        "slots.swf",
+
+        "snail bob 2.swf",
+        "snail bob 3.swf",
+        "snail bob 5 love story.swf",
+        "snail bob 7 fantasy story.swf",
+        "snail bob 8 island story.swf",
+        "snail bob space.swf",
+        "snail bob.swf",
+
+        "snake.swf",
+
+        "steak and jake midnight march.swf",
+        "steak and jake.swf",
+
+        "stealing the diamond.swf",
+
+        "Stick War.swf",
+
+        "sugar sugar 2.swf",
+        "sugar sugar 3.swf",
+        "sugar sugar xmas.swf",
+        "sugar sugar.swf",
+
+        "super mario 63.swf",
+        "super mario flash 2.swf",
+        "super mario flash 4.swf",
+        "super mario flash by povetpu games.swf",
+
+        "tetris.swf",
+
+        "the fancy pants adventure 1.swf",
+        "the fancy pants adventure 2.swf",
+
+        "the impossible quiz.swf",
+        "the world's hardest game.swf",
+
+        "truck loader 2.swf",
+        "truck loader 3.swf",
+        "truck loader 4.swf",
+        "truck loader 5.swf",
+        "truck loader.swf",
+
+        "Wheely 2.swf",
+        "Wheely 3.swf",
+        "Wheely 4.swf",
+        "Wheely 5.swf",
+        "Wheely 6.swf",
+        "Wheely 7.swf",
+        "Wheely 8.swf",
+        "Wheely.swf"
+
+    ];
+
+    gamesList =
+        [...new Set(gamesList)]
+        .sort((a, b) => a.localeCompare(b));
+
+
+    // ============================================================
+    // ROOFTOP SNIPERS
+    // ============================================================
+
+    const rooftopSnipers = {
+        type: "unity",
+        name: "Rooftop Snipers",
+        file: "games/other stuff/rooftop snipers stuff/rooftop-snipers-main/index.html",
+        image: "games/other stuff/rooftop snipers stuff/rooftop-snipers-main/img/thumb.png"
+    };
+
+
+    // ============================================================
+    // GAME NAME FORMATTING
+    // ============================================================
+
+    function formatGameName(f) {
+
+        let n = f
+            .replace(/\.swf$/i, "")
+            .replace(/[\_-]/g, " ");
+
+        n = n
+            .replace(/\b\w/g, c => c.toUpperCase())
+            .replace(/\s+/g, " ")
+            .trim();
+
+        return n.charAt(0).toUpperCase() + n.slice(1);
+    }
+
+
+    function normalizeStr(s) {
+
+        return s
+            .toLowerCase()
+            .replace(/[\_\-\s]/g, "");
+    }
+
+
+    // ============================================================
+    // GAME THUMBNAILS
+    // ============================================================
+
+    const pictureMap = {
+
+        "bloons super monkey.swf": "bloons super monkey.png",
+        "bloons tower defence 2.swf": "bloons tower defence 2.webp",
+        "bloons tower defence 3.swf": "bloons tower defence 3.webp",
+        "bloons tower defence 4.swf": "bloons tower defence 4.png",
+        "bloons tower defence.swf": "bloons tower defence.jpg",
+
+        "bloxorz 2.swf": "bloxorz 2.png",
+        "bloxorz.swf": "bloxorz.jpg",
+
+        "bob the robber 1.swf": "bob the robber 1.jpg",
+        "breaking the bank.swf": "breaking the bank.webp",
+
+        "cactus mccoy 2.swf": "cactus mccoy 2.jpg",
+        "cactus mccoy.swf": "cactus mccoy.jpg",
+
+        "diggy.swf": "diggy.png",
+        "dino run.swf": "dino run.webp",
+
+        "Doom Triple Pack.swf": "Doom Triple Pack.webp",
+        "doom.swf": "doom.jpg",
+
+        "duck life 2 world champion.swf": "duck life 2 world champion.jpg",
+        "Duck Life 3 Evolution.swf": "Duck Life 3 Evolution.webp",
+        "duck life 4.swf": "duck life 4.webp",
+        "duck life treasure hunt.swf": "duck life treasure hunt.jpg",
+        "duck life.swf": "duck life.jpg",
+
+        "earn to die 2012 part2.swf": "earn to die 2012 part2.png",
+        "earn to die 2012.swf": "earn to die 2012.png",
+        "earn to die exodus hacked.swf": "earn to die exodus hacked.png",
+        "earn to die exodus.swf": "earn to die exodus.jpg",
+        "earn to die.swf": "earn to die.webp",
+
+        "escaping the prison.swf": "escaping the prison.jpg",
+
+        "factory balls 2.swf": "factory balls 2.gif",
+        "factory balls 3.swf": "factory balls 3.jpg",
+        "factory balls 4.swf": "factory balls 4.webp",
+        "factory balls xmas.swf": "factory balls xmas.png",
+        "factory balls.swf": "factory balls.jpg",
+
+        "fancy pants adventure World 2.swf": "fancy pants adventure World 2.webp",
+        "fancy pants adventures World 1.swf": "fancy pants adventures World 1.png",
+        "Fancy Pants Adventures World 2 (Christmas).swf": "Fancy Pants Adventures World 2 (Christmas).jpg",
+        "Fancy Pants Adventures World 3.swf": "Fancy Pants Adventures World 3.webp",
+
+        "farafalla.swf": "farafalla.jpg",
+
+        "Fireboy & Watergirl The Forest Temple.swf": "Fireboy & Watergirl The Forest Temple.jpeg",
+
+        "fleeing the complex.swf": "fleeing the complex.avif",
+
+        "haunt the house.swf": "haunt the house.jpg",
+
+        "infiltrating the airship.swf": "infiltrating the airship.webp",
+
+        "Into Space 2 Xmas Story.swf": "Into Space 2 Xmas Story.jpg",
+        "into space 2.swf": "into space 2.jpg",
+        "into space 3 xmas story v2.swf": "into space 3 xmas story v2.png",
+        "into space 3 xmas story.swf": "into space 3 xmas story.png",
+        "into space.swf": "into space.jpg",
+
+        "jacksmith.swf": "jacksmith.webp",
+
+        "learn to fly 2.swf": "learn to fly 2.jpg",
+        "Learn To Fly 3.swf": "Learn To Fly 3.jpg",
+        "learn to fly.swf": "learn to fly.jpg",
+
+        "me and the key 2.swf": "me and the key 2.webp",
+        "me and the key 3.swf": "me and the key 3.jpg",
+        "me and the key.swf": "me and the key.jpg",
+
+        "Minicraft.swf": "Minicraft.webp",
+
+        "Papa Louie 2.swf": "Papa Louie 2.webp",
+        "Papa Louie 3.swf": "Papa Louie 3.png",
+        "papa louie.swf": "papa louie.png",
+
+        "papas bakeria.swf": "papas bakeria.webp",
+        "papas burgeria.swf": "papas burgeria.webp",
+        "papas cheeseria.swf": "papas cheeseria.webp",
+        "papas cupcakeria.swf": "papas cupcakeria.webp",
+        "papas donuteria.swf": "papas donuteria.webp",
+        "papas freezeria.swf": "papas freezeria.webp",
+        "papas hotdoggeria.swf": "papas hotdoggeria.webp",
+        "papas pancakeria.swf": "papas pancakeria.webp",
+        "papas pastaria.swf": "papas pastaria.webp",
+        "papas pizzeria v2.swf": "papas pizzeria v2.jpg",
+        "papas scooperia v102.swf": "papas scooperia v102.webp",
+        "papas sushiria.swf": "papas sushiria.webp",
+        "papas taco mia.swf": "papas tacomia.webp",
+        "papas wingeria.swf": "papas wingeria.webp",
+
+        "raft wars 2.swf": "raft wars 2.jpg",
+        "raft wars.swf": "raft wars.jpg",
+
+        "riddle school 2.swf": "riddle school 2.webp",
+        "riddle school 3.swf": "riddle school 3.webp",
+        "riddle school 4.swf": "riddle school 4.webp",
+        "riddle school 5.swf": "riddle school 5.webp",
+        "riddle school.swf": "riddle school.webp",
+
+        "riddle transfer 2.swf": "riddle transfer 2.webp",
+        "riddle transfer.swf": "riddle transfer.webp",
+
+        "rock garden v2.swf": "rock garden v2.webp",
+
+        "Run 2.swf": "Run 2.png",
+        "Run 3.swf": "Run 3.avif",
+        "Run.swf": "Run.jpeg",
+
+        "snail bob 2.swf": "snail bob 2.jpg",
+        "snail bob 3.swf": "snail bob 3.jpg",
+        "snail bob 5 love story.swf": "snail bob 5 love story.jpg",
+        "snail bob 7 fantasy story.swf": "snail bob 7 fantasy story.jpg",
+        "snail bob 8 island story.swf": "snail bob 8 island story.jpg",
+        "snail bob space.swf": "snail bob space.png",
+        "snail bob.swf": "snail bob.png",
+
+        "snake.swf": "snake.jpg",
+
+        "steak and jake midnight march.swf": "steak and jake midnight march.webp",
+        "steak and jake.swf": "steak and jake.webp",
+
+        "stealing the diamond.swf": "stealing the diamond.jpg",
+
+        "Stick War.swf": "Stick War.jpg",
+
+        "sugar sugar 2.swf": "sugar sugar 2.webp",
+        "sugar sugar 3.swf": "sugar sugar 3.jpg",
+        "sugar sugar xmas.swf": "sugar sugar xmas.jpg",
+        "sugar sugar.swf": "sugar sugar.jpg",
+
+        "super mario 63.swf": "super mario 63.webp",
+        "super mario flash 2.swf": "super mario flash 2.gif",
+        "super mario flash 4.swf": "super mario flash 4.jpg",
+        "super mario flash by povetpu games.swf": "super mario flash by povetpu games.jpg",
+
+        "tetris.swf": "tetris.jpg",
+
+        "the fancy pants adventure 1.swf": "the fancy pants adventure 1.jpg",
+        "the fancy pants adventure 2.swf": "the fancy pants adventure 2.jpg",
+
+        "the impossible quiz.swf": "the impossible quiz.webp",
+        "the world's hardest game.swf": "the world's hardest game.jpg",
+
+        "truck loader 2.swf": "truck loader 2.png",
+        "truck loader 3.swf": "truck loader 3.png",
+        "truck loader 4.swf": "truck loader 4.jpg",
+        "truck loader 5.swf": "truck loader 5.png",
+        "truck loader.swf": "truck loader.jpg",
+
+        "Wheely 2.swf": "Wheely 2.webp",
+        "Wheely 3.swf": "Wheely 3.png",
+        "Wheely 4.swf": "Wheely 4.jpg",
+        "Wheely 5.swf": "wheely 5.webp",
+        "Wheely 6.swf": "wheely 6.jpg",
+        "Wheely 7.swf": "Wheely 7.jpg",
+        "Wheely 8.swf": "Wheely 8.webp",
+        "Wheely.swf": "Wheely.webp"
+    };
+
+
+    // ============================================================
+    // FALLBACK THUMBNAIL
+    // ============================================================
+
+    function makeFallbackImage(name) {
+
+        const safeName = name
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .substring(0, 18);
+
+        const svg =
+            "<svg xmlns='http://www.w3.org/2000/svg' width='220' height='150'>" +
+            "<defs>" +
+            "<linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>" +
+            "<stop offset='0%' stop-color='%23333'/>" +
+            "<stop offset='100%' stop-color='%23151515'/>" +
+            "</linearGradient>" +
+            "</defs>" +
+            "<rect width='220' height='150' fill='url(%23g)'/>" +
+            "<text x='110' y='58' font-size='32' text-anchor='middle' fill='%23f39c12'>🎮</text>" +
+            "<text x='110' y='105' font-family='Arial' font-size='13' text-anchor='middle' fill='%23fff'>" +
+            safeName +
+            "</text>" +
+            "</svg>";
+
+        return "data:image/svg+xml;charset=UTF-8," +
+            encodeURIComponent(svg);
+    }
+
+
+    function getImagePath(f) {
+
+        const img = pictureMap[f];
+
+        if (img) {
+            return "pictures/" + img;
+        }
+
+        return makeFallbackImage(formatGameName(f));
+    }
+
+
+    // ============================================================
+    // GAME GROUPS
+    // ============================================================
+
+    const groups = {};
+
+    gamesList.forEach(f => {
+
+        const letter =
+            formatGameName(f)[0].toUpperCase();
+
+        if (!groups[letter]) {
+            groups[letter] = [];
+        }
+
+        groups[letter].push(f);
+    });
+
+
+    if (!groups["R"]) {
+        groups["R"] = [];
+    }
+
+    groups["R"].push("__ROOFTOP_SNIPERS__");
+
+
+    // ============================================================
+    // RENDER GAME MENU
+    // ============================================================
+
+    function renderMenu(filter = "") {
+
+        const norm = normalizeStr(filter);
+
+        const menuDiv =
+            document.getElementById("menu");
+
+        menuDiv.innerHTML = "";
+
+        Object.keys(groups)
+            .sort()
+            .forEach(letter => {
+
+                const visible =
+                    groups[letter].filter(f => {
+
+                        if (f === "__ROOFTOP_SNIPERS__") {
+
+                            return normalizeStr(
+                                rooftopSnipers.name
+                            ).includes(norm);
+                        }
+
+                        return normalizeStr(
+                            formatGameName(f)
+                        ).includes(norm);
+                    });
+
+                if (!visible.length) {
+                    return;
+                }
+
+                const row =
+                    document.createElement("div");
+
+                row.className =
+                    "letter-row";
+
+                const title =
+                    document.createElement("div");
+
+                title.className =
+                    "letter-title";
+
+                title.textContent =
+                    letter;
+
+                const gamesDiv =
+                    document.createElement("div");
+
+                gamesDiv.className =
+                    "games";
+
+                visible.forEach(game => {
+
+                    const isRooftop =
+                        game === "__ROOFTOP_SNIPERS__";
+
+                    const btn =
+                        document.createElement("button");
+
+                    btn.className =
+                        "game-btn";
+
+                    const img =
+                        document.createElement("img");
+
+                    img.src =
+                        isRooftop
+                            ? rooftopSnipers.image
+                            : getImagePath(game);
+
+                    img.alt =
+                        isRooftop
+                            ? rooftopSnipers.name
+                            : formatGameName(game);
+
+                    img.onerror = function() {
+
+                        this.onerror = null;
+
+                        this.src =
+                            makeFallbackImage(
+                                isRooftop
+                                    ? rooftopSnipers.name
+                                    : formatGameName(game)
+                            );
+                    };
+
+                    const nameDiv =
+                        document.createElement("div");
+
+                    nameDiv.className =
+                        "game-name";
+
+                    nameDiv.textContent =
+                        isRooftop
+                            ? rooftopSnipers.name
+                            : formatGameName(game);
+
+                    btn.appendChild(img);
+                    btn.appendChild(nameDiv);
+
+                    btn.onclick = () => {
+
+                        loadGame(game);
+
+                        document
+                            .getElementById("player-area")
+                            .scrollIntoView({
+                                behavior: "smooth"
+                            });
+                    };
+
+                    gamesDiv.appendChild(btn);
+                });
+
+                row.appendChild(title);
+                row.appendChild(gamesDiv);
+
+                menuDiv.appendChild(row);
+            });
+    }
+
+
+    // ============================================================
+    // LOAD GAME
+    // ============================================================
+
+    function loadGame(file) {
+
+        const container =
+            document.getElementById("game");
+
+        /*
+            Remove ONLY the current game.
+            The resize handle must stay.
+        */
+
+        const existingIframe =
+            container.querySelector("iframe");
+
+        const existingRuffle =
+            container.querySelector("ruffle-player");
+
+        const existingError =
+            container.querySelector(".ruffle-error");
+
+        if (existingIframe) {
+            existingIframe.remove();
+        }
+
+        if (existingRuffle) {
+            existingRuffle.remove();
+        }
+
+        if (existingError) {
+            existingError.remove();
+        }
+
+
+        // ========================================================
+        // ROOFTOP SNIPERS
+        // ========================================================
+
+        if (file === "__ROOFTOP_SNIPERS__") {
+
+            document.getElementById(
+                "game-title"
+            ).textContent =
+                rooftopSnipers.name;
+
+            const iframe =
+                document.createElement("iframe");
+
+            iframe.src =
+                rooftopSnipers.file;
+
+            iframe.title =
+                rooftopSnipers.name;
+
+            iframe.allow =
+                "autoplay; fullscreen; gamepad";
+
+            iframe.setAttribute(
+                "allowfullscreen",
+                ""
+            );
+
+            iframe.setAttribute(
+                "scrolling",
+                "no"
+            );
+
+            container.appendChild(
+                iframe
+            );
+
+            return;
+        }
+
+
+        // ========================================================
+        // SWF GAME
+        // ========================================================
+
+        document.getElementById(
+            "game-title"
+        ).textContent =
+            formatGameName(file);
+
+        if (
+            !window.RufflePlayer ||
+            !window.RufflePlayer.newest
+        ) {
+
+            const error =
+                document.createElement("div");
+
+            error.className =
+                "ruffle-error";
+
+            error.style.cssText =
+                "position:absolute;" +
+                "inset:0;" +
+                "display:flex;" +
+                "align-items:center;" +
+                "justify-content:center;" +
+                "padding:40px;" +
+                "color:#f39c12;" +
+                "font-size:20px;";
+
+            error.textContent =
+                "Ruffle could not be loaded.";
+
+            container.appendChild(
+                error
+            );
+
+            return;
+        }
+
+        const ruffle =
+            window.RufflePlayer.newest();
+
+        const player =
+            ruffle.createPlayer();
+
+        player.style.width =
+            "100%";
+
+        player.style.height =
+            "100%";
+
+        player.style.position =
+            "absolute";
+
+        player.style.top =
+            "0";
+
+        player.style.left =
+            "0";
+
+        container.appendChild(
+            player
+        );
+
+        player.load(
+            "games/swf%20files/" +
+            encodeURIComponent(file)
+        );
+    }
+
+
+    // ============================================================
+    // GAME PLAYER RESIZING
+    // ============================================================
+
+    const gameContainer =
+        document.getElementById("game");
+
+    const resizeHandle =
+        document.getElementById("game-resize-handle");
+
+    let resizingGame = false;
+
+    let resizeStartX = 0;
+    let resizeStartY = 0;
+
+    let resizeStartWidth = 0;
+    let resizeStartHeight = 0;
+
+    let resizePointerId = null;
+
+
+    function getMinimumWidth() {
+
+        if (window.innerWidth <= 600) {
+            return 280;
+        }
+
+        return 300;
+    }
+
+
+    function getMaximumWidth() {
+
+        /*
+            Keep the entire player inside the viewport.
+            Because the player is centered with auto margins,
+            it remains centered while changing size.
+        */
+
+        return Math.max(
+            getMinimumWidth(),
+            Math.floor(
+                window.innerWidth * 0.96
+            )
+        );
+    }
+
+
+    function stopGameResize(pointerId = null) {
+
+        resizingGame = false;
+
+        if (
+            pointerId !== null &&
+            resizeHandle.hasPointerCapture(pointerId)
+        ) {
+
+            try {
+                resizeHandle.releasePointerCapture(
+                    pointerId
+                );
+            } catch (err) {}
+        }
+
+        resizePointerId = null;
+
+        document.body.style.userSelect = "";
+        document.body.style.webkitUserSelect = "";
+        document.body.style.cursor = "";
+    }
+
+
+    resizeHandle.addEventListener(
+        "pointerdown",
+        e => {
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            resizingGame = true;
+
+            resizePointerId =
+                e.pointerId;
+
+            resizeStartX =
+                e.clientX;
+
+            resizeStartY =
+                e.clientY;
+
+            resizeStartWidth =
+                gameContainer.getBoundingClientRect().width;
+
+            resizeStartHeight =
+                gameContainer.getBoundingClientRect().height;
+
+            try {
+
+                resizeHandle.setPointerCapture(
+                    e.pointerId
+                );
+
+            } catch (err) {}
+
+            document.body.style.userSelect =
+                "none";
+
+            document.body.style.webkitUserSelect =
+                "none";
+
+            document.body.style.cursor =
+                "nwse-resize";
+        }
+    );
+
+
+    resizeHandle.addEventListener(
+        "pointermove",
+        e => {
+
+            if (
+                !resizingGame ||
+                e.pointerId !== resizePointerId
+            ) {
+                return;
+            }
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const deltaX =
+                e.clientX - resizeStartX;
+
+            const deltaY =
+                e.clientY - resizeStartY;
+
+
+            const minWidth =
+                getMinimumWidth();
+
+            const maxWidth =
+                getMaximumWidth();
+
+
+            /*
+                Horizontal movement controls width.
+                Vertical movement controls height.
+            */
+
+            const newWidth =
+                Math.max(
+                    minWidth,
+                    Math.min(
+                        maxWidth,
+                        resizeStartWidth + deltaX
+                    )
+                );
+
+
+            const newHeight =
+                Math.max(
+                    200,
+                    resizeStartHeight + deltaY
+                );
+
+
+            /*
+                IMPORTANT:
+                Setting margin-left/right to auto keeps
+                the entire player centered as it grows
+                or shrinks.
+            */
+
+            gameContainer.style.width =
+                Math.round(newWidth) + "px";
+
+            gameContainer.style.height =
+                Math.round(newHeight) + "px";
+
+            gameContainer.style.marginLeft =
+                "auto";
+
+            gameContainer.style.marginRight =
+                "auto";
+        }
+    );
+
+
+    resizeHandle.addEventListener(
+        "pointerup",
+        e => {
+
+            if (
+                resizePointerId !== null &&
+                e.pointerId !== resizePointerId
+            ) {
+                return;
+            }
+
+            stopGameResize(
+                e.pointerId
+            );
+        }
+    );
+
+
+    resizeHandle.addEventListener(
+        "pointercancel",
+        e => {
+
+            stopGameResize(
+                e.pointerId
+            );
+        }
+    );
+
+
+    resizeHandle.addEventListener(
+        "lostpointercapture",
+        () => {
+
+            if (resizingGame) {
+                stopGameResize();
+            }
+        }
+    );
+
+
+    /*
+        If the browser window gets smaller while the
+        game is resized, bring the player back inside
+        the viewport instead of letting it get stuck.
+    */
+
+    window.addEventListener(
+        "resize",
+        () => {
+
+            const minWidth =
+                getMinimumWidth();
+
+            const maxWidth =
+                getMaximumWidth();
+
+            const currentWidth =
+                gameContainer.getBoundingClientRect().width;
+
+            if (currentWidth > maxWidth) {
+
+                gameContainer.style.width =
+                    maxWidth + "px";
+            }
+
+            if (currentWidth < minWidth) {
+
+                gameContainer.style.width =
+                    minWidth + "px";
+            }
+
+            gameContainer.style.marginLeft =
+                "auto";
+
+            gameContainer.style.marginRight =
+                "auto";
+        }
+    );
+
+
+    // ============================================================
+    // SEARCH
+    // ============================================================
+
+    document
+        .getElementById("searchBox")
+        .addEventListener(
+            "input",
+            e => {
+
+                renderMenu(
+                    e.target.value
+                );
+            }
+        );
+
+
+    // ============================================================
+    // FULLSCREEN
+    // ============================================================
+
+    document
+        .getElementById("fullscreenBtn")
+        .onclick = () => {
+
+            const game =
+                document.getElementById("game");
+
+            if (game.requestFullscreen) {
+
+                game.requestFullscreen();
+
+            } else if (
+                game.webkitRequestFullscreen
+            ) {
+
+                game.webkitRequestFullscreen();
+            }
+        };
+
+
+    // ============================================================
+    // INITIAL MENU
+    // ============================================================
+
+    renderMenu();
+
+
+    // ============================================================
+    // CUSTOM CONTROLS
+    // ============================================================
+
+    let customButtons = [];
+
+    let deleteModeActive =
+        false;
+
+
+    function sendKeyToGame(key) {
+
+        const gameDiv =
+            document.getElementById("game");
+
+        const rufflePlayer =
+            gameDiv.querySelector(
+                "ruffle-player"
+            );
+
+        if (!rufflePlayer) {
+            return;
+        }
+
+        const keyCode =
+            key === "ArrowUp"
+                ? 38
+                : key === "ArrowDown"
+                ? 40
+                : key === "ArrowLeft"
+                ? 37
+                : key === "ArrowRight"
+                ? 39
+                : key === " "
+                ? 32
+                : key === "Enter"
+                ? 13
+                : key === "Escape"
+                ? 27
+                : key === "Tab"
+                ? 9
+                : key === "Backspace"
+                ? 8
+                : key === "Shift"
+                ? 16
+                : key === "Control"
+                ? 17
+                : key === "Alt"
+                ? 18
+                : key.charCodeAt(0);
+
+        const downEvent =
+            new KeyboardEvent(
+                "keydown",
+                {
+                    key:
+                        key === " "
+                            ? " "
+                            : key,
+
+                    code:
+                        key === " "
+                            ? "Space"
+                            : key,
+
+                    keyCode:
+                        keyCode,
+
+                    which:
+                        keyCode,
+
+                    bubbles:
+                        true
+                }
+            );
+
+        rufflePlayer.dispatchEvent(
+            downEvent
+        );
+
+        setTimeout(
+            () => {
+
+                const upEvent =
+                    new KeyboardEvent(
+                        "keyup",
+                        {
+                            key:
+                                key === " "
+                                    ? " "
+                                    : key,
+
+                            code:
+                                key === " "
+                                    ? "Space"
+                                    : key,
+
+                            keyCode:
+                                keyCode,
+
+                            which:
+                                keyCode,
+
+                            bubbles:
+                                true
+                        }
+                    );
+
+                rufflePlayer.dispatchEvent(
+                    upEvent
+                );
+
+            },
+            50
+        );
+    }
+
+
+    function sendMouseToGame(buttonType) {
+
+        const gameDiv =
+            document.getElementById("game");
+
+        const rufflePlayer =
+            gameDiv.querySelector(
+                "ruffle-player"
+            );
+
+        if (!rufflePlayer) {
+            return;
+        }
+
+        const rect =
+            rufflePlayer.getBoundingClientRect();
+
+        const x =
+            rect.left +
+            rect.width / 2;
+
+        const y =
+            rect.top +
+            rect.height / 2;
+
+        const mouseEvent =
+            new MouseEvent(
+                buttonType === "left"
+                    ? "click"
+                    : "contextmenu",
+                {
+                    view:
+                        window,
+
+                    bubbles:
+                        true,
+
+                    clientX:
+                        x,
+
+                    clientY:
+                        y,
+
+                    button:
+                        buttonType === "left"
+                            ? 0
+                            : 2
+                }
+            );
+
+        rufflePlayer.dispatchEvent(
+            mouseEvent
+        );
+    }
+
+
+    function renderCustomBtns() {
+
+        const container =
+            document.getElementById(
+                "customButtonsContainer"
+            );
+
+        container.innerHTML = "";
+
+        customButtons.forEach(btn => {
+
+            const wrapper =
+                document.createElement("div");
+
+            wrapper.className =
+                "custom-btn-wrapper";
+
+            wrapper.dataset.id =
+                btn.id;
+
+            const drag =
+                document.createElement("span");
+
+            drag.className =
+                "drag-handle";
+
+            drag.innerHTML =
+                "⋮⋮";
+
+            const action =
+                document.createElement("button");
+
+            action.className =
+                "custom-game-btn";
+
+            action.textContent =
+                btn.label;
+
+            action.onclick =
+                e => {
+
+                    e.stopPropagation();
+
+                    if (deleteModeActive) {
+                        return;
+                    }
+
+                    if (
+                        btn.key ===
+                        "LeftClick"
+                    ) {
+
+                        sendMouseToGame(
+                            "left"
+                        );
+
+                    } else if (
+                        btn.key ===
+                        "RightClick"
+                    ) {
+
+                        sendMouseToGame(
+                            "right"
+                        );
+
+                    } else {
+
+                        sendKeyToGame(
+                            btn.key
+                        );
+                    }
+                };
+
+            wrapper.appendChild(
+                drag
+            );
+
+            wrapper.appendChild(
+                action
+            );
+
+            if (deleteModeActive) {
+
+                const del =
+                    document.createElement(
+                        "button"
+                    );
+
+                del.className =
+                    "delete-btn-icon";
+
+                del.innerHTML =
+                    "✕";
+
+                del.onclick =
+                    () => {
+
+                        customButtons =
+                            customButtons.filter(
+                                c =>
+                                    c.id !==
+                                    btn.id
+                            );
+
+                        saveCustom();
+                        renderCustomBtns();
+                    };
+
+                wrapper.appendChild(
+                    del
+                );
+            }
+
+            container.appendChild(
+                wrapper
+            );
+        });
+
+
+        if (window.sortableInstance) {
+
+            window.sortableInstance.destroy();
+
+            window.sortableInstance =
+                null;
+        }
+
+
+        if (!deleteModeActive) {
+
+            window.sortableInstance =
+                new Sortable(
+                    container,
+                    {
+                        handle:
+                            ".drag-handle",
+
+                        animation:
+                            150,
+
+                        onEnd:
+                            () => {
+
+                                const newOrder =
+                                    Array.from(
+                                        document.querySelectorAll(
+                                            "#customButtonsContainer .custom-btn-wrapper"
+                                        )
+                                    )
+                                    .map(
+                                        w =>
+                                            customButtons.find(
+                                                b =>
+                                                    b.id ===
+                                                    w.dataset.id
+                                            )
+                                    )
+                                    .filter(Boolean);
+
+                                if (
+                                    newOrder.length
+                                ) {
+
+                                    customButtons =
+                                        newOrder;
+
+                                    saveCustom();
+                                }
+                            }
+                    }
+                );
+        }
+    }
+
+
+    function saveCustom() {
+
+        localStorage.setItem(
+            "gabes_custom_btns",
+            JSON.stringify(
+                customButtons
+            )
+        );
+    }
+
+
+    function loadCustom() {
+
+        const saved =
+            localStorage.getItem(
+                "gabes_custom_btns"
+            );
+
+        if (saved) {
+
+            try {
+
+                customButtons =
+                    JSON.parse(saved);
+
+            } catch (e) {
+
+                customButtons =
+                    [];
+            }
+        }
+
+        renderCustomBtns();
+    }
+
+
+    // ============================================================
+    // CUSTOM BUTTON PICKER
+    // ============================================================
+
+    function showPicker() {
+
+        const overlay =
+            document.createElement(
+                "div"
+            );
+
+        overlay.style.cssText =
+            "position:fixed;" +
+            "top:0;" +
+            "left:0;" +
+            "width:100%;" +
+            "height:100%;" +
+            "background:rgba(0,0,0,0.95);" +
+            "z-index:30000;" +
+            "display:flex;" +
+            "align-items:center;" +
+            "justify-content:center;" +
+            "padding:20px;";
+
+
+        overlay.innerHTML =
+
+            "<div style='" +
+            "background:#2a2a2a;" +
+            "border-radius:24px;" +
+            "padding:20px;" +
+            "max-width:700px;" +
+            "width:100%;" +
+            "'>" +
+
+            "<h3>Choose key or click</h3>" +
+
+            "<div id='pickGrid' style='" +
+            "display:flex;" +
+            "flex-wrap:wrap;" +
+            "gap:8px;" +
+            "justify-content:center;" +
+            "max-height:400px;" +
+            "overflow:auto;" +
+            "'></div>" +
+
+            "<button id='closePickerBtn' " +
+            "style='margin-top:15px;padding:8px 20px;'>" +
+            "Cancel" +
+            "</button>" +
+
+            "</div>";
+
+
+        const grid =
+            overlay.querySelector(
+                "#pickGrid"
+            );
+
+
+        const keys = [
+
+            "ArrowUp",
+            "ArrowDown",
+            "ArrowLeft",
+            "ArrowRight",
+
+            " ",
+
+            "LeftClick",
+            "RightClick",
+
+            "a",
+            "b",
+            "c",
+            "d",
+            "e",
+            "f",
+            "g",
+            "h",
+            "i",
+            "j",
+            "k",
+            "l",
+            "m",
+
+            "n",
+            "o",
+            "p",
+            "q",
+            "r",
+            "s",
+            "t",
+            "u",
+            "v",
+            "w",
+            "x",
+            "y",
+            "z",
+
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+
+            "Shift",
+            "Control",
+            "Alt",
+
+            "Enter",
+            "Tab",
+            "Escape",
+            "Backspace"
+        ];
+
+
+        keys.forEach(k => {
+
+            const btn =
+                document.createElement(
+                    "button"
+                );
+
+            btn.style.cssText =
+                "background:#444;" +
+                "border:none;" +
+                "color:white;" +
+                "padding:8px 16px;" +
+                "border-radius:40px;" +
+                "cursor:pointer;" +
+                "margin:4px;";
+
+
+            let display =
+                k;
+
+            if (k === "ArrowUp") {
+
+                display =
+                    "↑ Up";
+
+            } else if (
+                k === "ArrowDown"
+            ) {
+
+                display =
+                    "↓ Down";
+
+            } else if (
+                k === "ArrowLeft"
+            ) {
+
+                display =
+                    "← Left";
+
+            } else if (
+                k === "ArrowRight"
+            ) {
+
+                display =
+                    "→ Right";
+
+            } else if (k === " ") {
+
+                display =
+                    "␣ Space";
+
+            } else if (
+                k === "LeftClick"
+            ) {
+
+                display =
+                    "🖱️ Left Click";
+
+            } else if (
+                k === "RightClick"
+            ) {
+
+                display =
+                    "🖱️ Right Click";
+
+            } else {
+
+                display =
+                    k.toUpperCase();
+            }
+
+
+            btn.textContent =
+                display;
+
+
+            btn.onclick =
+                () => {
+
+                    customButtons.push({
+
+                        id:
+                            Date.now() +
+                            "_" +
+                            Math.random(),
+
+                        key:
+                            k,
+
+                        label:
+                            display
+                    });
+
+                    saveCustom();
+                    renderCustomBtns();
+
+                    document.body.removeChild(
+                        overlay
+                    );
+
+                    if (
+                        deleteModeActive
+                    ) {
+
+                        toggleDeleteMode(
+                            false
+                        );
+                    }
+                };
+
+
+            grid.appendChild(
+                btn
+            );
+        });
+
+
+        overlay.querySelector(
+            "#closePickerBtn"
+        ).onclick =
+            () => {
+
+                document.body.removeChild(
+                    overlay
+                );
+            };
+
+
+        document.body.appendChild(
+            overlay
+        );
+    }
+
+
+    function toggleDeleteMode(force) {
+
+        deleteModeActive =
+            force !== undefined
+                ? force
+                : !deleteModeActive;
+
+        const btn =
+            document.getElementById(
+                "toggleDeleteModeBtn"
+            );
+
+        if (
+            deleteModeActive
+        ) {
+
+            btn.classList.add(
+                "delete-active"
+            );
+
+        } else {
+
+            btn.classList.remove(
+                "delete-active"
+            );
+        }
+
+        renderCustomBtns();
+    }
+
+
+    document.getElementById(
+        "addCustomBtn"
+    ).onclick =
+        () => {
+
+            if (
+                deleteModeActive
+            ) {
+
+                toggleDeleteMode(
+                    false
+                );
+            }
+
+            showPicker();
+        };
+
+
+    document.getElementById(
+        "toggleDeleteModeBtn"
+    ).onclick =
+        () => {
+
+            toggleDeleteMode();
+        };
+
+
+    loadCustom();
+
+
+    // ============================================================
+    // FIREBASE SUGGESTIONS
+    // ============================================================
+
+    function escapeHtml(str) {
+
+        return String(str).replace(
+            /[&<>]/g,
+            m =>
+                ({
+                    "&":
+                        "&amp;",
+
+                    "<":
+                        "&lt;",
+
+                    ">":
+                        "&gt;"
+                }[m])
+        );
+    }
+
+
+    async function updateStats() {
+
+        if (!isAdminLoggedIn) {
+            return;
+        }
+
+        try {
+
+            const snapshot =
+                await db
+                    .collection(
+                        "suggestions"
+                    )
+                    .get();
+
+            let bytes =
+                0;
+
+            snapshot.forEach(
+                doc => {
+
+                    bytes +=
+                        JSON.stringify(
+                            doc.data()
+                        ).length;
+                }
+            );
+
+            document.getElementById(
+                "storageSize"
+            ).textContent =
+                bytes +
+                " bytes";
+
+            document.getElementById(
+                "msgCount"
+            ).textContent =
+                snapshot.size;
+
+        } catch (error) {
+
+            console.error(
+                "Could not update stats:",
+                error
+            );
+        }
+    }
+
+
+    function renderSuggestion(doc) {
+
+        const data =
+            doc.data();
+
+        const bubble =
+            document.createElement(
+                "div"
+            );
+
+        bubble.className =
+            "message-bubble";
+
+
+        const contentDiv =
+            document.createElement(
+                "div"
+            );
+
+        contentDiv.className =
+            "message-content";
+
+
+        contentDiv.innerHTML =
+
+            "<div class='message-name'>" +
+            escapeHtml(
+                data.name || ""
+            ) +
+            "</div>" +
+
+            "<div class='message-text'>" +
+            escapeHtml(
+                data.text || ""
+            ) +
+            "</div>" +
+
+            "<div class='message-time'>" +
+            escapeHtml(
+                data.time || ""
+            ) +
+            "</div>";
+
+
+        bubble.appendChild(
+            contentDiv
+        );
+
+
+        if (isAdminLoggedIn) {
+
+            const delBtn =
+                document.createElement(
+                    "button"
+                );
+
+            delBtn.className =
+                "message-delete-btn";
+
+            delBtn.textContent =
+                "✕ Delete";
+
+
+            delBtn.onclick =
+                async e => {
+
+                    e.stopPropagation();
+
+                    try {
+
+                        await db
+                            .collection(
+                                "suggestions"
+                            )
+                            .doc(
+                                doc.id
+                            )
+                            .delete();
+
+                        updateStats();
+
+                    } catch (
+                        error
+                    ) {
+
+                        console.error(
+                            "Delete failed:",
+                            error
+                        );
+                    }
+                };
+
+
+            bubble.appendChild(
+                delBtn
+            );
+        }
+
+
+        return bubble;
+    }
+
+
+    db.collection(
+        "suggestions"
+    )
+    .orderBy(
+        "timestamp",
+        "desc"
+    )
+    .onSnapshot(
+        snapshot => {
+
+            const messagesArea =
+                document.getElementById(
+                    "messagesArea"
+                );
+
+            if (!messagesArea) {
+                return;
+            }
+
+            messagesArea.innerHTML =
+                "";
+
+            snapshot.forEach(
+                doc => {
+
+                    messagesArea.appendChild(
+                        renderSuggestion(
+                            doc
+                        )
+                    );
+                }
+            );
+
+            updateStats();
+        }
+    );
+
+
+    // ============================================================
+    // SEND SUGGESTION
+    // ============================================================
+
+    document.getElementById(
+        "sendSuggestionBtn"
+    ).onclick =
+        async () => {
+
+            const name =
+                document.getElementById(
+                    "suggestionName"
+                ).value.trim();
+
+            const text =
+                document.getElementById(
+                    "suggestionMsg"
+                ).value.trim();
+
+
+            if (!name) {
+
+                alert(
+                    "Please enter your name"
+                );
+
+                return;
+            }
+
+
+            if (!text) {
+
+                alert(
+                    "Please enter a suggestion"
+                );
+
+                return;
+            }
+
+
+            try {
+
+                await db
+                    .collection(
+                        "suggestions"
+                    )
+                    .add({
+
+                        name:
+                            name,
+
+                        text:
+                            text,
+
+                        time:
+                            new Date()
+                                .toLocaleString(),
+
+                        timestamp:
+                            firebase
+                                .firestore
+                                .FieldValue
+                                .serverTimestamp()
+                    });
+
+
+                document.getElementById(
+                    "suggestionMsg"
+                ).value =
+                    "";
+
+            } catch (error) {
+
+                console.error(
+                    "Suggestion failed:",
+                    error
+                );
+
+                alert(
+                    "Could not send suggestion. Please try again."
+                );
+            }
+        };
+
+
+    // ============================================================
+    // SUGGESTIONS TOGGLE
+    // ============================================================
+
+    const suggestionsBody =
+        document.getElementById(
+            "suggestionsBody"
+        );
+
+    const toggleBtn =
+        document.getElementById(
+            "toggleSuggestionsBtn"
+        );
+
+
+    suggestionsBody.classList.remove(
+        "expanded"
+    );
+
+    toggleBtn.textContent =
+        "+";
+
+
+    toggleBtn.onclick =
+        () => {
+
+            suggestionsBody.classList.toggle(
+                "expanded"
+            );
+
+            toggleBtn.textContent =
+                suggestionsBody.classList.contains(
+                    "expanded"
+                )
+                    ? "−"
+                    : "+";
+        };
+
+
+    document.getElementById(
+        "suggestionsHeader"
+    ).addEventListener(
+        "click",
+        e => {
+
+            if (
+                e.target.closest(
+                    "#toggleSuggestionsBtn"
+                ) ||
+                e.target.closest(
+                    "#adminIndicator"
+                )
+            ) {
+                return;
+            }
+
+            suggestionsBody.classList.toggle(
+                "expanded"
+            );
+
+            toggleBtn.textContent =
+                suggestionsBody.classList.contains(
+                    "expanded"
+                )
+                    ? "−"
+                    : "+";
+        }
+    );
+
+
+    // ============================================================
+    // ADMIN UI
+    // ============================================================
+
+    function updateAdminUI() {
+
+        const statsBar =
+            document.getElementById(
+                "statsBar"
+            );
+
+        const adminIndicator =
+            document.getElementById(
+                "adminIndicator"
+            );
+
+
+        if (isAdminLoggedIn) {
+
+            statsBar.classList.add(
+                "visible"
+            );
+
+            adminIndicator.style.display =
+                "inline";
+
+
+            adminIndicator.innerHTML =
+
+                "<span class='admin-badge'>" +
+                "👑 Admin" +
+                "</span>" +
+
+                "<button id='logoutHeaderBtn' " +
+                "class='logout-header-btn'>" +
+                "🚪 Logout" +
+                "</button>";
+
+
+            document.getElementById(
+                "logoutHeaderBtn"
+            ).onclick =
+                e => {
+
+                    e.stopPropagation();
+
+                    logout();
+                };
+
+
+            updateStats();
+
+        } else {
+
+            statsBar.classList.remove(
+                "visible"
+            );
+
+            adminIndicator.style.display =
+                "none";
+
+            adminIndicator.innerHTML =
+                "";
+        }
+
+
+        db.collection(
+            "suggestions"
+        )
+        .orderBy(
+            "timestamp",
+            "desc"
+        )
+        .get()
+        .then(
+            snapshot => {
+
+                const messagesArea =
+                    document.getElementById(
+                        "messagesArea"
+                    );
+
+                if (!messagesArea) {
+                    return;
+                }
+
+                messagesArea.innerHTML =
+                    "";
+
+                snapshot.forEach(
+                    doc => {
+
+                        messagesArea.appendChild(
+                            renderSuggestion(
+                                doc
+                            )
+                        );
+                    }
+                );
+            }
+        )
+        .catch(
+            error => {
+
+                console.error(
+                    "Could not load suggestions:",
+                    error
+                );
+            }
+        );
+    }
+
+
+    // ============================================================
+    // ADMIN LOGOUT
+    // ============================================================
+
+    function logout() {
+
+        isAdminLoggedIn =
+            false;
+
+        localStorage.setItem(
+            "gabes_admin_logged_in",
+            "false"
+        );
+
+        updateAdminUI();
+
+        if (adminModal) {
+            adminModal.remove();
+        }
+
+        adminModal =
+            null;
+    }
+
+
+    // ============================================================
+    // ADMIN LOGIN
+    // ============================================================
+
+    let adminModal =
+        null;
+
+
+    function showAdminLogin() {
+
+        if (adminModal) {
+            return;
+        }
+
+
+        adminModal =
+            document.createElement(
+                "div"
+            );
+
+        adminModal.className =
+            "admin-modal";
+
+
+        adminModal.innerHTML =
+
+            "<div class='admin-card'>" +
+
+            "<h2>Admin Sign In</h2>" +
+
+            "<input type='text' " +
+            "id='adminUser' " +
+            "placeholder='Username'>" +
+
+            "<input type='password' " +
+            "id='adminPass' " +
+            "placeholder='Password'>" +
+
+            "<button id='adminLoginBtn'>" +
+            "Login" +
+            "</button>" +
+
+            "<button id='adminCloseBtn'>" +
+            "Back" +
+            "</button>" +
+
+            "</div>";
+
+
+        document.body.appendChild(
+            adminModal
+        );
+
+
+        document.getElementById(
+            "adminLoginBtn"
+        ).onclick =
+            () => {
+
+                const u =
+                    document.getElementById(
+                        "adminUser"
+                    ).value;
+
+                const p =
+                    document.getElementById(
+                        "adminPass"
+                    ).value;
+
+
+                if (
+                    u === "gabe2126" &&
+                    p === "furiousdestroyerxi2126"
+                ) {
+
+                    isAdminLoggedIn =
+                        true;
+
+                    localStorage.setItem(
+                        "gabes_admin_logged_in",
+                        "true"
+                    );
+
+
+                    if (adminModal) {
+                        adminModal.remove();
+                    }
+
+                    adminModal =
+                        null;
+
+                    updateAdminUI();
+
+                } else {
+
+                    alert(
+                        "Wrong credentials"
+                    );
+                }
+            };
+
+
+        document.getElementById(
+            "adminCloseBtn"
+        ).onclick =
+            () => {
+
+                if (adminModal) {
+                    adminModal.remove();
+                }
+
+                adminModal =
+                    null;
+            };
+    }
+
+
+    // ============================================================
+    // CLEAR ALL SUGGESTIONS
+    // ============================================================
+
+    document.getElementById(
+        "clearAllBtn"
+    ).onclick =
+        async () => {
+
+            if (!isAdminLoggedIn) {
+                return;
+            }
+
+
+            if (
+                !confirm(
+                    "⚠️ Delete ALL suggestions? This cannot be undone!"
+                )
+            ) {
+                return;
+            }
+
+
+            try {
+
+                const all =
+                    await db
+                        .collection(
+                            "suggestions"
+                        )
+                        .get();
+
+                const batch =
+                    db.batch();
+
+                all.forEach(
+                    doc => {
+
+                        batch.delete(
+                            doc.ref
+                        );
+                    }
+                );
+
+                await batch.commit();
+
+                alert(
+                    "All suggestions cleared!"
+                );
+
+                updateStats();
+
+            } catch (error) {
+
+                console.error(
+                    "Clear all failed:",
+                    error
+                );
+
+                alert(
+                    "Could not clear messages."
+                );
+            }
+        };
+
+
+    // ============================================================
+    // SECRET ADMIN BUTTON
+    // ============================================================
+
+    document.getElementById(
+        "secretAdminBtn"
+    ).addEventListener(
+        "click",
+        showAdminLogin
+    );
+
+
+    // ============================================================
+    // START
+    // ============================================================
+
+    updateAdminUI();
+
+</script>
+
+</body>
+</html>
