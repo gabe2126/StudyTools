@@ -1056,6 +1056,18 @@
 
 
     // ============================================================
+    // EAGLERCRAFT
+    // ============================================================
+
+    const eaglercraft = {
+        type: "html",
+        name: "Eaglercraft 1.12.2",
+        file: "games/other stuff/eaglercraft/Eaglercraft_1.12.2_WASM_Offline_Download.html",
+        image: null  // uses fallback thumbnail
+    };
+
+
+    // ============================================================
     // GAME NAME FORMATTING
     // ============================================================
 
@@ -1321,6 +1333,13 @@
     groups["R"].push("__ROOFTOP_SNIPERS__");
 
 
+    if (!groups["E"]) {
+        groups["E"] = [];
+    }
+
+    groups["E"].push("__EAGLERCRAFT__");
+
+
     // ============================================================
     // RENDER GAME MENU
     // ============================================================
@@ -1345,6 +1364,13 @@
 
                             return normalizeStr(
                                 rooftopSnipers.name
+                            ).includes(norm);
+                        }
+
+                        if (f === "__EAGLERCRAFT__") {
+
+                            return normalizeStr(
+                                eaglercraft.name
                             ).includes(norm);
                         }
 
@@ -1383,6 +1409,9 @@
                     const isRooftop =
                         game === "__ROOFTOP_SNIPERS__";
 
+                    const isEagler =
+                        game === "__EAGLERCRAFT__";
+
                     const btn =
                         document.createElement("button");
 
@@ -1395,11 +1424,15 @@
                     img.src =
                         isRooftop
                             ? rooftopSnipers.image
+                            : isEagler
+                            ? makeFallbackImage(eaglercraft.name)
                             : getImagePath(game);
 
                     img.alt =
                         isRooftop
                             ? rooftopSnipers.name
+                            : isEagler
+                            ? eaglercraft.name
                             : formatGameName(game);
 
                     img.onerror = function() {
@@ -1410,6 +1443,8 @@
                             makeFallbackImage(
                                 isRooftop
                                     ? rooftopSnipers.name
+                                    : isEagler
+                                    ? eaglercraft.name
                                     : formatGameName(game)
                             );
                     };
@@ -1423,6 +1458,8 @@
                     nameDiv.textContent =
                         isRooftop
                             ? rooftopSnipers.name
+                            : isEagler
+                            ? eaglercraft.name
                             : formatGameName(game);
 
                     btn.appendChild(img);
@@ -1518,6 +1555,50 @@
                 "scrolling",
                 "no"
             );
+
+            container.appendChild(
+                iframe
+            );
+
+            return;
+        }
+
+
+        // ========================================================
+        // EAGLERCRAFT
+        // ========================================================
+
+        if (file === "__EAGLERCRAFT__") {
+
+            document.getElementById(
+                "game-title"
+            ).textContent =
+                eaglercraft.name;
+
+            const iframe =
+                document.createElement("iframe");
+
+            iframe.src =
+                eaglercraft.file;
+
+            iframe.title =
+                eaglercraft.name;
+
+            iframe.allow =
+                "autoplay; fullscreen; gamepad; cross-origin-isolated";
+
+            iframe.setAttribute(
+                "allowfullscreen",
+                ""
+            );
+
+            iframe.setAttribute(
+                "scrolling",
+                "no"
+            );
+
+            // Eaglercraft needs more space / isolation-friendly attributes
+            iframe.style.border = "0";
 
             container.appendChild(
                 iframe
