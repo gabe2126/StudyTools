@@ -1063,7 +1063,7 @@
         type: "html",
         name: "Eaglercraft 1.12.2",
         file: "games/other stuff/eaglercraft/Eaglercraft_1.12.2_WASM_Offline_Download.html",
-        image: null  // uses fallback thumbnail
+        image: "pictures/eaglercraft.jpg"
     };
 
 
@@ -1099,6 +1099,13 @@
     // ============================================================
 
     const pictureMap = {
+
+        "blackjack.swf": "blackjack.png",
+        "classic-roulette.swf": "classic roulette.png",
+        "Poker.swf": "poker.png",
+        "Ricks Slots.swf": "rick slots.jpg",
+        "Skull Slots.swf": "skull slots.png",
+        "slots.swf": "slots.png",
 
         "bloons super monkey.swf": "bloons super monkey.png",
         "bloons tower defence 2.swf": "bloons tower defence 2.webp",
@@ -1425,7 +1432,7 @@
                         isRooftop
                             ? rooftopSnipers.image
                             : isEagler
-                            ? makeFallbackImage(eaglercraft.name)
+                            ? eaglercraft.image
                             : getImagePath(game);
 
                     img.alt =
