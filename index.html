@@ -1,3 +1,182 @@
+Skip to main content
+wheres the html????? I need the full entire updated working html
+
+
+Worked for 3s
+Here’s the complete updated HTML file with Eaglercraft added:
+
+
+Just download that file and replace your current site’s HTML with it. Make sure the Eaglercraft folder is still at:
+
+games/other stuff/eaglercraft/Eaglercraft_1.12.2_WASM_Offline_Download.html
+
+(relative to the HTML file).
+
+k now tell me how to add it to github and the new eaglercraft file cause github says this, and I uploaded the file to here
+but github said this
+
+404
+File not found
+The site configured at this address does not contain the requested file.
+If this is your site, make sure that the filename case matches the URL as well as any file permissions.
+For root URLs (like http://example.com/) you must provide an index.html file.
+Read the full documentation for more information about using GitHub Pages.
+GitHub Status — @githubstatus
+
+
+Worked for 29s
+Here’s the corrected full HTML with the path fixed to match exactly what you uploaded:
+
+
+How to put it on GitHub correctly
+Rename the file I just gave you to index.html
+Upload index.html to the root of your repository (StudyTools)
+Make sure the Eaglercraft file stays here:
+games/other stuff/Eaglercraft_1.12.2_WASM_Offline_Download.html
+(exactly as shown in your screenshot)
+Go to your repo → Settings → Pages
+Source: Deploy from a branch
+Branch: main (or master)
+Folder: / (root)
+Save
+Wait 1–2 minutes, then visit your site (usually https://yourusername.github.io/StudyTools/)
+Quick tip
+Spaces in folder names (other stuff) work, but they make the URL ugly (other%20stuff). If you want cleaner links later, you can rename the folder to other-stuff and update the path again.
+
+Would you like me to also change the path to use other-stuff (no space) in case you rename the folder?
+
+or just tell me how to make a floder in github
+
+
+Worked for 5s
+Here's the easiest way to create a folder on GitHub (using the website):
+
+Method 1 – Create a folder while uploading a file (easiest)
+Go to your repository on GitHub
+
+Click into the place where you want the new folder (for example click on games → then other stuff)
+
+Click the Add file button → Upload files
+
+In the upload box, drag your file in
+
+Before you click Commit, look at the text box that says the file name
+
+Type the folder name you want + a slash + the file name
+
+Example:
+
+eaglercraft/Eaglercraft_1.12.2_WASM_Offline_Download.html
+This will automatically create a folder called eaglercraft and put the file inside it.
+
+Click Commit changes
+
+That’s it — GitHub will create the folder for you.
+
+Method 2 – Create an empty folder
+GitHub doesn’t let you create completely empty folders. You have to put at least one file in it.
+
+Go to the folder where you want the new folder
+Click Add file → Create new file
+Type the folder name followed by a slash and a dummy file name, for example:
+eaglercraft/.gitkeep
+Leave the file empty (or put anything)
+Click Commit new file
+Now you have a folder called eaglercraft.
+
+Would you like me to update the HTML again so it looks for the file inside an eaglercraft folder (the original path I first gave you)? Just say the word and I’ll fix it.
+
+I did this, but it still says
+404
+File not found
+The site configured at this address does not contain the requested file.
+If this is your site, make sure that the filename case matches the URL as well as any file permissions.
+For root URLs (like http://example.com/) you must provide an index.html file.
+Read the full documentation for more information about using GitHub Pages.
+GitHub Status — @githubstatus
+
+
+Worked for 24s
+Here’s the corrected full file:
+
+
+Exact steps to fix the 404
+Rename the file above to exactly:
+
+index.html
+Upload it to the root of your repository
+
+(the same place where the games folder is, not inside games or other stuff)
+
+Your repo should look like this:
+
+StudyTools/
+├── index.html          ← this is the main page
+├── games/
+│   └── other stuff/
+│       └── eaglercraft/
+│           └── Eaglercraft_1.12.2_WASM_Offline_Download.html
+Go to your repository → Settings → Pages (on the left)
+
+Under Build and deployment:
+
+Source: Deploy from a branch
+Branch: main (or master)
+Folder: / (root)
+Click Save
+Wait 1–2 minutes, then go to your site address
+
+(it should look like https://gabe2126.github.io/StudyTools/)
+
+After you do this, the 404 should disappear and Eaglercraft will show up under the letter E on your site.
+
+Would you like me to also check anything else once you’ve uploaded index.html?
+
+no bruh cause the main website file is named index.html bruh but when I run eaglercraft in teh website it says that, is it cause the eaglercraft is an html file and needs to be named index.html???
+
+
+Worked for 20s
+No, the Eaglercraft file does not need to be named index.html.
+
+Only the main page of your whole website needs to be called index.html. The Eaglercraft file can keep its long name — that’s fine.
+
+Why you’re still getting the 404
+When you click Eaglercraft on your site, the browser is trying to load this exact path:
+
+games/other stuff/eaglercraft/Eaglercraft_1.12.2_WASM_Offline_Download.html
+GitHub Pages is saying that file doesn’t exist at that location (or the space in other stuff is causing problems).
+
+Quick test (do this now)
+Go to your repository on GitHub
+Click all the way into:
+games → other stuff → eaglercraft
+Click on the Eaglercraft file
+Click the Raw button (or just copy the URL from the address bar)
+Paste that full URL into a new browser tab and press Enter
+What happens?
+
+If it still shows 404 → the file isn’t actually where GitHub Pages thinks it is (or Pages hasn’t updated yet).
+If the Eaglercraft page loads → then the problem is only the path inside your main index.html.
+Most common fix
+The space in the folder name other stuff often breaks things on GitHub Pages.
+
+Best solution right now:
+
+Rename the folder from other stuff to other-stuff (no space)
+Tell me when you’ve done that and I’ll instantly give you a new index.html with the corrected path.
+Would you like to do that? Just reply “yes rename it” and I’ll update the code.
+
+
+
+
+
+
+
+index.html
+
+
+
+Files
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3409,3 +3588,4 @@
 
 </body>
 </html>
+Add Eaglercraft to Website - Grok
